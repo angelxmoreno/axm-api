@@ -7,8 +7,12 @@ import { createContainerBuilder } from '@/utils/create-container-builder';
 // container that resolves a `Logger` whose level matches the config.
 
 const baseEnv: Record<string, string | undefined> = {
+    APP_NAME: 'axm-api',
+    SENTRY_DSN: '',
+    NODE_ENV: 'development',
     LOGGER_USE_PRETTY: 'true',
     LOGGER_LEVEL: 'info',
+    LOGGER_LOKI_URL: '',
 };
 
 const buildBuilder = (overrides: Partial<AppConfig['logger']> = {}): ReturnType<typeof createContainerBuilder> => {

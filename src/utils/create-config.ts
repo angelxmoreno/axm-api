@@ -2,16 +2,30 @@ import { z } from 'zod';
 import { LogLevelSchema } from '@/utils/create-logger';
 import { safeZodParser } from '@/utils/safe-zod-parser';
 
+const NodeEnvSchema = z.enum(['development', 'production', 'test']);
+
+const UrlOrUndefinedSchema = z
+    .union([z.url(), z.literal('').transform(() => undefined)])
+    .optional()
+    .transform((v) => (v === '' ? undefined : v));
+
 export const AppConfigSchema = z
     .object({
+        APP_NAME: z.string(),
+        SENTRY_DSN: UrlOrUndefinedSchema,
+        NODE_ENV: NodeEnvSchema,
         LOGGER_USE_PRETTY: z.stringbool(),
         LOGGER_LEVEL: LogLevelSchema,
-        LOGGER_LOKI_URL: z
-            .union([z.url(), z.literal('').transform(() => undefined)])
-            .optional()
-            .transform((v) => (v === '' ? undefined : v)),
+        LOGGER_LOKI_URL: UrlOrUndefinedSchema,
     })
     .transform((v) => ({
+        app: {
+            name: v.APP_NAME,
+            nodeEnv: v.NODE_ENV,
+        },
+        sentry: {
+            dsn: v.SENTRY_DSN,
+        },
         logger: {
             usePretty: v.LOGGER_USE_PRETTY,
             level: v.LOGGER_LEVEL,

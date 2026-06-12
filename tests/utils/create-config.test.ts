@@ -3,9 +3,11 @@ import { z } from 'zod';
 import { AppConfigSchema, createConfig } from '@/utils/create-config';
 
 // Env vars are always strings. Schema must coerce / accept strings for every
-// field. This file only tests the env-driven path — there is no overrides
-// argument any more.
+// field. This file only tests the env-driven path.
 const baseEnv: Record<string, string | undefined> = {
+    APP_NAME: 'axm-api',
+    SENTRY_DSN: '',
+    NODE_ENV: 'development',
     LOGGER_USE_PRETTY: 'true',
     LOGGER_LEVEL: 'info',
     LOGGER_LOKI_URL: 'https://logs.example.com',
@@ -13,15 +15,72 @@ const baseEnv: Record<string, string | undefined> = {
 
 describe('AppConfigSchema', () => {
     describe('shape transformation', () => {
-        it('maps flat LOGGER_* env keys to a nested logger object', () => {
+        it('maps flat env keys to a nested { app, sentry, logger } object', () => {
             const result = AppConfigSchema.parse(baseEnv);
             expect(result).toEqual({
+                app: {
+                    name: 'axm-api',
+                    nodeEnv: 'development',
+                },
+                sentry: {
+                    dsn: undefined,
+                },
                 logger: {
                     usePretty: true,
                     level: 'info',
                     lokiUrl: 'https://logs.example.com',
                 },
             });
+        });
+    });
+
+    describe('APP_NAME', () => {
+        it('passes through the value verbatim', () => {
+            const result = AppConfigSchema.parse({ ...baseEnv, APP_NAME: 'my-service' });
+            expect(result.app.name).toBe('my-service');
+        });
+
+        it('rejects when missing (fail-loud: app should not start without a name)', () => {
+            const { APP_NAME, ...without } = baseEnv;
+            expect(() => AppConfigSchema.parse(without)).toThrow(z.ZodError);
+        });
+    });
+
+    describe('NODE_ENV validation', () => {
+        it.each(['development', 'production', 'test'])('accepts %p', (value) => {
+            const result = AppConfigSchema.parse({ ...baseEnv, NODE_ENV: value });
+            expect(result.app.nodeEnv).toBe(value);
+        });
+
+        it('rejects an unknown env', () => {
+            expect(() => AppConfigSchema.parse({ ...baseEnv, NODE_ENV: 'staging' })).toThrow(z.ZodError);
+        });
+
+        it('rejects when missing', () => {
+            const { NODE_ENV, ...without } = baseEnv;
+            expect(() => AppConfigSchema.parse(without)).toThrow(z.ZodError);
+        });
+    });
+
+    describe('SENTRY_DSN validation', () => {
+        it('accepts a valid URL', () => {
+            const result = AppConfigSchema.parse({ ...baseEnv, SENTRY_DSN: 'https://abc@sentry.io/123' });
+            expect(result.sentry.dsn).toBe('https://abc@sentry.io/123');
+        });
+
+        it('accepts the field being absent (undefined)', () => {
+            const { SENTRY_DSN, ...without } = baseEnv;
+            const result = AppConfigSchema.parse(without);
+            expect(result.sentry.dsn).toBeUndefined();
+        });
+
+        it('treats an empty string the same as absent (line 8 contract)', () => {
+            const result = AppConfigSchema.parse({ ...baseEnv, SENTRY_DSN: '' });
+            expect(result.sentry.dsn).toBeUndefined();
+        });
+
+        it('rejects a non-URL string', () => {
+            expect(() => AppConfigSchema.parse({ ...baseEnv, SENTRY_DSN: 'not-a-url' })).toThrow(z.ZodError);
         });
     });
 
@@ -62,21 +121,13 @@ describe('AppConfigSchema', () => {
         });
 
         it('accepts the field being absent (undefined)', () => {
-            const env: Record<string, string | undefined> = {
-                LOGGER_USE_PRETTY: 'true',
-                LOGGER_LEVEL: 'info',
-            };
-            const result = AppConfigSchema.parse(env);
+            const { LOGGER_LOKI_URL, ...without } = baseEnv;
+            const result = AppConfigSchema.parse(without);
             expect(result.logger.lokiUrl).toBeUndefined();
         });
 
         it('treats an empty string the same as absent (line 8 contract)', () => {
-            const env: Record<string, string | undefined> = {
-                LOGGER_USE_PRETTY: 'true',
-                LOGGER_LEVEL: 'info',
-                LOGGER_LOKI_URL: '',
-            };
-            const result = AppConfigSchema.parse(env);
+            const result = AppConfigSchema.parse({ ...baseEnv, LOGGER_LOKI_URL: '' });
             expect(result.logger.lokiUrl).toBeUndefined();
         });
 
@@ -90,17 +141,15 @@ describe('createConfig()', () => {
     it('builds a config from a valid env record', () => {
         const config = createConfig(baseEnv);
         expect(config).toEqual({
-            logger: {
-                usePretty: true,
-                level: 'info',
-                lokiUrl: 'https://logs.example.com',
-            },
+            app: { name: 'axm-api', nodeEnv: 'development' },
+            sentry: { dsn: undefined },
+            logger: { usePretty: true, level: 'info', lokiUrl: 'https://logs.example.com' },
         });
     });
 
     it('throws an Error with a ZodError cause when env is invalid', () => {
         try {
-            createConfig({ LOGGER_LEVEL: 'verbose' });
+            createConfig({ ...baseEnv, LOGGER_LEVEL: 'verbose' });
             throw new Error('expected createConfig to throw');
         } catch (e) {
             expect(e).toBeInstanceOf(Error);
@@ -117,11 +166,15 @@ describe('createConfig()', () => {
 
     it('skips undefined values when building the record (process.env semantics)', () => {
         const env: Record<string, string | undefined> = {
+            APP_NAME: 'axm-api',
+            SENTRY_DSN: undefined,
+            NODE_ENV: 'production',
             LOGGER_USE_PRETTY: 'true',
             LOGGER_LEVEL: 'info',
             LOGGER_LOKI_URL: undefined, // simulates env var not being set
         };
         const config = createConfig(env);
         expect(config.logger.lokiUrl).toBeUndefined();
+        expect(config.sentry.dsn).toBeUndefined();
     });
 });

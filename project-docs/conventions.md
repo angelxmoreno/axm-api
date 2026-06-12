@@ -219,7 +219,10 @@ The error message format is always **`{ActionLabel}: Unable to parse schema`**, 
 
 ### DI composition
 
-`createContainerBuilder` (one file, one function) is the **only place that wires the leaves together**. As services and repos land, they get registered here — nowhere else.
+Two layers, two responsibilities:
+
+- **`createContainerBuilder`** (`src/utils/`) — project-agnostic builder. Registers the cross-cutting infrastructure (logger, future rate limiters, future health-check clients) that every project needs. Owned by the template; downstream users don't edit it.
+- **`app.container.ts`** (`src/config/`) — project-specific wiring. Calls `createContainerBuilder`, adds the project's services (repos, third-party clients, custom services), calls `.build()`, exports the container. This is the file that grows as the project grows.
 
 Registration pattern with `@novadi/core`:
 
@@ -239,6 +242,32 @@ Every public factory has at least one test. Tests cover:
 3. **Wiring factories** (`createContainerBuilder`) — assert the returned builder can be `.build()`-ed and resolves the registered services with the right shape and lifetime.
 
 Do not mock pino, do not start the dev server. Unit-test the wiring; integration-test the runtime.
+
+### Template vs Project layers
+
+The template distinguishes two layers of config and DI wiring. This separation is what makes the template reusable across downstream projects.
+
+**Template layer** — `src/utils/`
+
+- Project-agnostic. Lives in the template, never edited by downstream users.
+- Owns the **shape** of the world: which env vars exist, which logger transports are wired, which DI lifetime policies are applied.
+- Each file is a pure factory: `createConfig`, `createLogger`, `createContainerBuilder`, `safeZodParser`.
+- A downstream project consumes these factories; it does not modify them.
+- New utilities (rate limiters, email senders, payment clients) added to the template belong here only if they are useful to every project. Otherwise they belong in the project layer.
+
+**Project layer** — `src/config/`
+
+- Project-specific. Edited freely by downstream users.
+- Owns the **values** and **project-specific services**: which Stripe key, which OAuth providers, which feature flags, which repos the project actually uses.
+- The convention is one file per concern:
+  - `app.config.ts` — calls `createConfig(Bun.env)` once, exports a typed singleton. Add project-specific helpers next to it (e.g. `getStripeConfig(appConfig)`) when the config gets complex enough to need them.
+  - `app.container.ts` — calls `createContainerBuilder(appConfig)`, registers every project-specific service (repos, third-party clients, custom services), then `.build()`s and exports the container.
+- New project-specific config slots → extend `app.config.ts` (or add a sibling `{name}.config.ts`).
+- New project-specific services → register them in `app.container.ts`.
+
+**Why split:** the template's factories stay small and pure; the project's `app.config.ts` and `app.container.ts` grow as the project grows. Downstream users edit only the project layer. Template upgrades never conflict with project-specific code.
+
+**Anti-pattern to avoid:** stuffing project-specific logic into `src/utils/`. The moment a util references a Stripe key, a project feature flag, or a project-specific env var, it has stopped being reusable. Move it to `src/config/`.
 
 ---
 

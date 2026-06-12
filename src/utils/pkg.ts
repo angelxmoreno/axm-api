@@ -1,0 +1,3 @@
+import * as pkg from 'pkg';
+
+export { pkg };

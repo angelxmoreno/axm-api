@@ -24,6 +24,7 @@
     },
     "dependencies": {
         "@novadi/core": "^0.6.1",
+        "@sentry/bun": "^10.57.0",
         "hono": "^4.12.25",
         "pino": "^10.3.1",
         "pino-loki": "^3.0.0",

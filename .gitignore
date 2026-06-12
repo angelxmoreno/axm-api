@@ -9,6 +9,8 @@ dist/
 # Environment
 .env
 .env.local
+.env.test
+.env.production
 .env.*.local
 
 # IDE
