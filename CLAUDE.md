@@ -64,6 +64,7 @@ Read `project-docs/conventions.md` before writing any code. Hard rules:
 - Don't commit without running pre-commit checks (they should pass automatically)
 
 ## File Roles
+
 | File | Audience | Purpose |
 |---|---|---|
 | `CLAUDE.md` (this) | Claude Code, building the template | Current build state, workflow |

@@ -57,12 +57,13 @@ The template ships with a strict dev tooling setup. All checks run automatically
 - Pre-commit skips merge and rebase commits
 - Commit-msg: `bunx commitlint --edit $1`
 
-If a pre-commit check fails, the commit is blocked. Fix the issue or run `git commit --no-verify` to bypass (not recommended).
+If a pre-commit check fails, the commit is blocked. Fix the issue.
 
 ---
 
 ## Folder Structure
-```
+
+```text
 src/
   entities/        EntitySchema definitions, one per resource
   routes/          Hono route apps, one file per resource
@@ -246,4 +247,4 @@ Claude Code must follow all conventions in this file exactly. If a convention is
 - Skip error handling in service methods
 - Create files outside the defined folder structure
 - Deviate from kebab-case file naming
-- Bypass pre-commit hooks with `--no-verify` (avoid; flag if necessary)
+- Bypass pre-commit hooks

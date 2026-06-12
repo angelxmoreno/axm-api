@@ -175,7 +175,7 @@ The template ships with strict dev tooling. Configure all of it before writing a
 - [ ] `curl -X POST localhost:PORT/v1/auth/login ...` → 200 with token
 - [ ] Bad creds → 401
 - [ ] Duplicate email → 409
-- [ ] Stage a junk change, run `git add .` + `git commit -m "test"`, confirm lefthook runs and blocks on failure
+- [ ] Stage a junk change, run `git add .` + `git commit -m "chore: test"`, confirm lefthook runs and blocks on failure
 
 ### 14. README
 - [ ] What it is, stack, tool table, folder structure, env vars, scripts, "to add a resource: edit spec.md, run Claude Code"

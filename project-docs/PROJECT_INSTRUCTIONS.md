@@ -59,36 +59,39 @@ The template ships with a strict dev tooling setup. All checks run automatically
 - Commit-msg: commitlint
 - Skips merge and rebase commits
 
-If a pre-commit check fails, the commit is blocked. Fix the issue or run `git commit --no-verify` to bypass (not recommended).
+If a pre-commit check fails, the commit is blocked. Fix the issue.
 
 ---
 
-## What Already Exists in This Template
-Do not regenerate or modify these unless explicitly asked:
+## What This Template Will Provide (Planned)
 
-### Entities
+The template's `implementation.md` defines the build order. When complete, the following files will exist. **Do not regenerate or modify these unless explicitly asked** (and only if the build is done):
+
+### Entities (planned)
 - `src/entities/base.entity.ts` — provides `id`, `createdAt`, `updatedAt` as a shared schema fields constant
 - `src/entities/user.entity.ts` — `User` type + `UserEntity` `EntitySchema`
 
-### Services
+### Services (planned)
 - `src/services/auth.service.ts` — register, login, JWT issue/verify, password hashing
 
-### Routes
+### Routes (planned)
 - `src/routes/auth.route.ts` — `POST /v1/auth/register`, `POST /v1/auth/login`
 
-### Middlewares
+### Middlewares (planned)
 - `src/middlewares/auth.middleware.ts` — JWT verification, attaches user to context
 - `src/middlewares/error.middleware.ts` — global error handler, maps error classes to HTTP status codes
 
-### Errors
+### Errors (planned)
 - `src/errors/http.error.ts` — base class
 - `src/errors/not-found.error.ts` → 404
 - `src/errors/unauthorized.error.ts` → 401
 - `src/errors/validation.error.ts` → 400
 - `src/errors/conflict.error.ts` → 409
 
-### Entry Point
+### Entry Point (planned)
 - `src/index.ts` — Hono app instance, global middleware registered, auth routes mounted
+
+Until the template is built, these files are placeholders. If you are downstream using the template, check the repo for the actual state of these files before assuming they exist.
 
 ---
 

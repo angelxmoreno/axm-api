@@ -29,9 +29,9 @@ All run on `bun install` (via `prepare` script) and `git commit` (via lefthook).
 
 ## Folder Structure
 
-```
+```text
 src/
-  entities/        TypeORM entity classes
+  entities/        TypeORM EntitySchema definitions (no-decorator)
   routes/          Hono route apps, one file per resource
   services/        Business logic classes, one file per resource
   middlewares/     Shared middleware (auth, error handling)
@@ -50,7 +50,7 @@ cp .env.example .env   # fill in DB + JWT_SECRET
 bun dev
 ```
 
-Server starts on `PORT` (default 3000). Health check: `GET /health`.
+After the build is complete (see `project-docs/implementation.md` step 12), the server starts on `PORT` (default 3000) and exposes `GET /health` returning `{ status: 'ok' }`. Until then, `src/index.ts` is a stub.
 
 ---
 
