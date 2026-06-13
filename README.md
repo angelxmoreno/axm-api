@@ -46,11 +46,11 @@ src/
 
 ```bash
 bun install
-cp .env.example .env   # fill in DB + JWT_SECRET
+cp .env.example .env
 bun dev
 ```
 
-After the build is complete (see `project-docs/implementation.md` step 12), the server starts on `PORT` (default 3000) and exposes `GET /health` returning `{ status: 'ok' }`. Until then, `src/index.ts` is a stub.
+The server reads its config from environment variables (see below). `src/index.ts` wires the config and starts the HTTP server. `bun dev` runs with hot reload.
 
 ---
 
@@ -64,6 +64,7 @@ After the build is complete (see `project-docs/implementation.md` step 12), the 
 | `bun test` | Run tests |
 | `bun lint` | Biome check |
 | `bun lint:fix` | Biome check + autofix |
+| `bun check` | Run all pre-commit checks (lint, types, dead-code, dupes, health) |
 | `bun check:types` | TypeScript type check |
 | `bun check:dead-code` | Fallow dead code scan |
 | `bun check:dupes` | Fallow duplicate code scan |
@@ -77,16 +78,22 @@ Commit-msg hook runs `commitlint` against conventional commit rules.
 
 ## Environment Variables
 
-| Var | Required | Default | Notes |
-|---|---|---|---|
-| `DB_HOST` | yes | — | MariaDB host |
-| `DB_PORT` | yes | — | MariaDB port |
-| `DB_USER` | yes | — | DB user |
-| `DB_PASS` | yes | — | DB password |
-| `DB_NAME` | yes | — | DB name |
-| `JWT_SECRET` | yes | — | Sign/verify tokens |
-| `JWT_EXPIRES_IN` | no | `7d` | Token lifetime |
-| `PORT` | no | `3000` | HTTP port |
+All variables are read by `createConfig(Bun.env)` in `src/utils/create-config.ts`. The schema lives there; the table below reflects the current contract.
+
+| Var | Required | Default | Type | Notes |
+|---|---|---|---|---|
+| `APP_NAME` | yes | — | string | Service name. Used in logs, Sentry tags, Loki labels. |
+| `NODE_ENV` | yes | — | enum | `development` \| `production` \| `test`. Gates Sentry init. |
+| `SENTRY_DSN` | no | — | URL or empty | Sentry DSN. Empty disables Sentry. |
+| `HTTP_HOSTNAME` | no | `localhost` | string | Server bind hostname. |
+| `HTTP_PORT` | no | `3001` | number | Server bind port. Env-string coerced. |
+| `LOGGER_USE_PRETTY` | yes | — | bool-string | `true`/`false`/`1`/`0`/`yes`/`no`/... See [z.stringbool()](https://zod.dev/v4). |
+| `LOGGER_LEVEL` | yes | — | enum | `silent` \| `fatal` \| `error` \| `warn` \| `info` \| `debug` \| `trace`. |
+| `LOGGER_LOKI_URL` | no | — | URL or empty | Loki push endpoint. Empty disables Loki transport. |
+
+**Env-string booleans:** `LOGGER_USE_PRETTY` accepts the truthy set `true | 1 | yes | on | y | enabled` (case-insensitive) and the falsy set `false | 0 | no | off | n | disabled`. Anything else throws at startup.
+
+**Empty URLs:** `SENTRY_DSN` and `LOGGER_LOKI_URL` treat an empty string the same as unset. Don't use `unset` as a value — just leave the line empty in `.env`.
 
 ---
 

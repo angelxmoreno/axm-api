@@ -14,8 +14,7 @@
         "sourceMap": true,
         "types": ["bun"],
         "paths": {
-            "@/*": ["./src/*"],
-            "pkg": ["./package.json"]
+            "@/*": ["./src/*"]
         }
     },
     "exclude": ["node_modules", "dist"]

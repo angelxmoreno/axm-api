@@ -8,6 +8,8 @@ const baseEnv: Record<string, string | undefined> = {
     APP_NAME: 'axm-api',
     SENTRY_DSN: '',
     NODE_ENV: 'development',
+    HTTP_HOSTNAME: '0.0.0.0',
+    HTTP_PORT: '8080',
     LOGGER_USE_PRETTY: 'true',
     LOGGER_LEVEL: 'info',
     LOGGER_LOKI_URL: 'https://logs.example.com',
@@ -21,6 +23,8 @@ describe('AppConfigSchema', () => {
                 app: {
                     name: 'axm-api',
                     nodeEnv: 'development',
+                    hostname: '0.0.0.0',
+                    port: 8080,
                 },
                 sentry: {
                     dsn: undefined,
@@ -43,6 +47,29 @@ describe('AppConfigSchema', () => {
         it('rejects when missing (fail-loud: app should not start without a name)', () => {
             const { APP_NAME, ...without } = baseEnv;
             expect(() => AppConfigSchema.parse(without)).toThrow(z.ZodError);
+        });
+    });
+
+    describe('HTTP_HOSTNAME / HTTP_PORT', () => {
+        it('coerces HTTP_PORT from a string to a number', () => {
+            const result = AppConfigSchema.parse({ ...baseEnv, HTTP_PORT: '3000' });
+            expect(result.app.port).toBe(3000);
+        });
+
+        it('falls back to default hostname when HTTP_HOSTNAME is missing', () => {
+            const { HTTP_HOSTNAME, ...without } = baseEnv;
+            const result = AppConfigSchema.parse(without);
+            expect(result.app.hostname).toBe('localhost');
+        });
+
+        it('falls back to default port when HTTP_PORT is missing', () => {
+            const { HTTP_PORT, ...without } = baseEnv;
+            const result = AppConfigSchema.parse(without);
+            expect(result.app.port).toBe(3001);
+        });
+
+        it('rejects a non-numeric HTTP_PORT', () => {
+            expect(() => AppConfigSchema.parse({ ...baseEnv, HTTP_PORT: 'not-a-number' })).toThrow(z.ZodError);
         });
     });
 
@@ -141,7 +168,7 @@ describe('createConfig()', () => {
     it('builds a config from a valid env record', () => {
         const config = createConfig(baseEnv);
         expect(config).toEqual({
-            app: { name: 'axm-api', nodeEnv: 'development' },
+            app: { name: 'axm-api', nodeEnv: 'development', hostname: '0.0.0.0', port: 8080 },
             sentry: { dsn: undefined },
             logger: { usePretty: true, level: 'info', lokiUrl: 'https://logs.example.com' },
         });
@@ -169,6 +196,8 @@ describe('createConfig()', () => {
             APP_NAME: 'axm-api',
             SENTRY_DSN: undefined,
             NODE_ENV: 'production',
+            HTTP_HOSTNAME: undefined, // falls back to default
+            HTTP_PORT: undefined, // falls back to default
             LOGGER_USE_PRETTY: 'true',
             LOGGER_LEVEL: 'info',
             LOGGER_LOKI_URL: undefined, // simulates env var not being set
@@ -176,5 +205,7 @@ describe('createConfig()', () => {
         const config = createConfig(env);
         expect(config.logger.lokiUrl).toBeUndefined();
         expect(config.sentry.dsn).toBeUndefined();
+        expect(config.app.hostname).toBe('localhost');
+        expect(config.app.port).toBe(3001);
     });
 });

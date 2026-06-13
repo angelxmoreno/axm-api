@@ -33,30 +33,29 @@ describe('createLogger()', () => {
     });
 
     describe('schema validation (defense-in-depth parse at the boundary)', () => {
-        it('rejects an invalid level', () => {
-            try {
-                createLogger({
+        const invalidCases: { name: string; input: CreateLoggerOptions }[] = [
+            {
+                name: 'an invalid level',
+                input: {
                     usePretty: true,
                     lokiUrl: 'https://example.com',
                     // @ts-expect-error - intentionally bad input
                     level: 'verbose',
-                });
-                throw new Error('expected createLogger to throw');
-            } catch (e) {
-                expect(e).toBeInstanceOf(Error);
-                expect((e as Error).message).toBe('Creating Logger: Unable to parse schema');
-                // @ts-expect-error - cause is not in Error's type
-                expect(e.cause).toBeInstanceOf(z.ZodError);
-            }
-        });
-
-        it('rejects a non-URL lokiUrl', () => {
-            try {
-                createLogger({
+                },
+            },
+            {
+                name: 'a non-URL lokiUrl',
+                input: {
                     usePretty: true,
                     lokiUrl: 'not-a-url',
                     level: 'info',
-                });
+                },
+            },
+        ];
+
+        it.each(invalidCases)('rejects $name and wraps the ZodError as cause', (testCase) => {
+            try {
+                createLogger(testCase.input);
                 throw new Error('expected createLogger to throw');
             } catch (e) {
                 expect(e).toBeInstanceOf(Error);

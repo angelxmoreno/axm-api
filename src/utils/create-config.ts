@@ -11,6 +11,8 @@ const UrlOrUndefinedSchema = z
 
 export const AppConfigSchema = z
     .object({
+        HTTP_HOSTNAME: z.string().default('localhost'),
+        HTTP_PORT: z.coerce.number().default(3001),
         APP_NAME: z.string(),
         SENTRY_DSN: UrlOrUndefinedSchema,
         NODE_ENV: NodeEnvSchema,
@@ -22,6 +24,8 @@ export const AppConfigSchema = z
         app: {
             name: v.APP_NAME,
             nodeEnv: v.NODE_ENV,
+            hostname: v.HTTP_HOSTNAME,
+            port: v.HTTP_PORT,
         },
         sentry: {
             dsn: v.SENTRY_DSN,

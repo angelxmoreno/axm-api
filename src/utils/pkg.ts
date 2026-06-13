@@ -1,3 +1,3 @@
-import * as pkg from 'pkg';
+import * as pkg from '../../package.json';
 
 export { pkg };
