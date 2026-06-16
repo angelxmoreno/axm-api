@@ -1,12 +1,23 @@
 import { Hono } from 'hono';
+import { trimTrailingSlash } from 'hono/trailing-slash';
+import type { Logger } from 'pino';
 import { appConfig } from '@/config/app.config';
+import { appContainer } from '@/config/app.container';
 import { createCorsMiddleware } from '@/middlewares/cors.middleware';
+import { createRequestLoggerMiddleware } from '@/middlewares/request-logger.middleware';
+import { createRequestTrackingMiddleware } from '@/middlewares/request-tracking.middleware';
 import { createSecureHeadersMiddleware } from '@/middlewares/secure-headers.middleware';
-import type { HonoEnv } from '@/schemas/hono';
+import type { AppEnv } from '@/schemas/hono';
 
-const app = new Hono<HonoEnv>();
-app.use(createCorsMiddleware(appConfig.cors));
+const logger = appContainer.resolveType<Logger>().child({ module: 'http-server' });
+const app = new Hono<AppEnv>();
+
+app.use(createRequestTrackingMiddleware());
+app.use(trimTrailingSlash());
 app.use(createSecureHeadersMiddleware(appConfig.secureHeaders));
+app.use(createCorsMiddleware(appConfig.cors));
+app.use(createRequestLoggerMiddleware({ logger }));
+
 export default {
     hostname: appConfig.app.hostname,
     port: appConfig.app.port,
