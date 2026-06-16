@@ -20,7 +20,11 @@
         "check:dead-code": "bun run fallow dead-code",
         "check:dupes": "bun run fallow dupes",
         "check:health": "bun run fallow health",
-        "check:audit": "bun run fallow audit"
+        "check:audit": "bun run fallow audit",
+        "review": "diffscopeplus review",
+        "review:staged": "diffscopeplus staged",
+        "review:last-commit": "diffscopeplus last-commit",
+        "review:branch": "diffscopeplus branch"
     },
     "dependencies": {
         "@novadi/core": "^0.6.1",

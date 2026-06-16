@@ -70,9 +70,49 @@ The server reads its config from environment variables (see below). `src/index.t
 | `bun check:dupes` | Fallow duplicate code scan |
 | `bun check:health` | Fallow health report |
 | `bun check:audit` | Fallow audit report |
+| `bun review` | AI code review of unstaged working-tree changes (via `diffscope`) |
+| `bun review:staged` | AI review of staged changes |
+| `bun review:last-commit` | AI review of the last commit (`HEAD~1..HEAD`) |
+| `bun review:branch` | AI review of the branch diff (`main...HEAD`, or `BASE=develop bun review:branch`) |
 
 Pre-commit hook runs `lint`, `check:types`, `check:dead-code`, `check:dupes`, `check:health` in parallel.
 Commit-msg hook runs `commitlint` against conventional commit rules.
+
+### Review scripts
+
+The `review*` scripts shell out to [diffscopeplus](https://github.com/angelxmoreno/diffscopeplus),
+a global CLI installed on the developer's machine. `diffscopeplus` reads
+`.diffscope.yml` (model, base URL, tuning) and pipes the requested git diff
+into `diffscope review`.
+
+**One-time install per developer:**
+
+```bash
+git clone https://github.com/angelxmoreno/diffscopeplus.git
+cd diffscopeplus
+bun install
+bun run build
+cp dist/diffscopeplus /usr/local/bin/   # or anywhere on PATH
+```
+
+Or follow the install instructions in the [diffscopeplus README](https://github.com/angelxmoreno/diffscopeplus).
+
+**Usage:**
+
+- `BASE=develop bun review:branch` — review against a non-default base.
+- `bun review -- --strictness 3` — pass extra flags through to diffscope.
+
+**Requires `.diffscope.yml` in the repo root** (or a parent directory).
+`diffscopeplus` fails fast with a clear error if the file is missing or
+the `model:` field is absent.
+
+**Why the wrapper exists:** diffscope 0.5.28 has a bug where the top-level
+`model:` field in `.diffscope.yml` is silently ignored — diffscope hard-codes
+the primary review model to `claude-*` and only honors `model_weak`,
+`model_fast`, `model_reasoning`, `model_embedding`. `diffscopeplus` works
+around this by reading `model:` and forwarding it as `--model` on the CLI,
+which diffscope does honor. See the [diffscopeplus repo](https://github.com/angelxmoreno/diffscopeplus)
+for full details.
 
 ---
 
