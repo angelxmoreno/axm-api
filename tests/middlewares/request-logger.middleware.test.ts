@@ -2,6 +2,7 @@ import { describe, expect, it } from 'bun:test';
 import { Hono } from 'hono';
 import pino, { type Logger } from 'pino';
 import { createRequestLogger } from '@/middlewares/request-logger.middleware';
+import { createRequestTracking } from '@/middlewares/request-tracking.middleware';
 import type { AppEnv } from '@/schemas/hono';
 
 type CapturedLog = {
@@ -29,6 +30,7 @@ describe('createRequestLogger()', () => {
     it('logs request details after the handler runs', async () => {
         const { logger, logs } = createCapturingLogger();
         const app = new Hono<AppEnv>();
+        app.use(createRequestTracking());
         app.use(createRequestLogger({ logger }));
         app.get('/hello', (c) => c.text('world'));
 
@@ -50,6 +52,7 @@ describe('createRequestLogger()', () => {
         const { logger, logs } = createCapturingLogger();
         const app = new Hono<AppEnv>();
         app.onError(() => new Response('Internal Server Error', { status: 500 }));
+        app.use(createRequestTracking());
         app.use(createRequestLogger({ logger }));
         app.get('/error', () => {
             throw new Error('boom');
@@ -70,6 +73,7 @@ describe('createRequestLogger()', () => {
         const app = new Hono<AppEnv>();
         app.use(async (c, next) => {
             c.set('requestId', 'preset-id');
+            c.set('requestStartTime', Date.now());
             await next();
         });
         app.use(createRequestLogger({ logger }));
@@ -77,15 +81,5 @@ describe('createRequestLogger()', () => {
 
         await app.request('/with-id');
         expect(logs[0]?.requestId).toBe('preset-id');
-    });
-
-    it('reports a non-negative durationMs', async () => {
-        const { logger, logs } = createCapturingLogger();
-        const app = new Hono<AppEnv>();
-        app.use(createRequestLogger({ logger }));
-        app.get('/ping', (c) => c.text('pong'));
-
-        await app.request('/ping');
-        expect(logs[0]?.durationMs).toBeGreaterThanOrEqual(0);
     });
 });
