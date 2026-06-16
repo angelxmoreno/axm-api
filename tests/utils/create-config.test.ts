@@ -4,6 +4,15 @@ import { AppConfigSchema, createConfig } from '@/utils/create-config';
 
 // Env vars are always strings. Schema must coerce / accept strings for every
 // field. This file only tests the env-driven path.
+const expectedCors = {
+    origin: '*',
+    allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowHeaders: ['content-type', 'authorization'],
+    maxAge: 86_400,
+    credentials: false,
+    exposeHeaders: [],
+};
+
 const baseEnv: Record<string, string | undefined> = {
     APP_NAME: 'axm-api',
     SENTRY_DSN: '',
@@ -13,11 +22,17 @@ const baseEnv: Record<string, string | undefined> = {
     LOGGER_USE_PRETTY: 'true',
     LOGGER_LEVEL: 'info',
     LOGGER_LOKI_URL: 'https://logs.example.com',
+    CORS_ORIGIN: expectedCors.origin,
+    CORS_ALLOWED_METHODS: expectedCors.allowMethods.join(','),
+    CORS_ALLOWED_HEADERS: expectedCors.allowHeaders.join(','),
+    CORS_MAX_AGE: String(expectedCors.maxAge),
+    CORS_CREDENTIALS: String(expectedCors.credentials),
+    CORS_EXPOSE_HEADERS: expectedCors.exposeHeaders.join(','),
 };
 
 describe('AppConfigSchema', () => {
     describe('shape transformation', () => {
-        it('maps flat env keys to a nested { app, sentry, logger } object', () => {
+        it('maps flat env keys to a nested { app, cors, sentry, logger } object', () => {
             const result = AppConfigSchema.parse(baseEnv);
             expect(result).toEqual({
                 app: {
@@ -26,6 +41,7 @@ describe('AppConfigSchema', () => {
                     hostname: '0.0.0.0',
                     port: 8080,
                 },
+                cors: expectedCors,
                 sentry: {
                     dsn: undefined,
                 },
@@ -98,6 +114,58 @@ describe('AppConfigSchema', () => {
         it('rejects when missing', () => {
             const { NODE_ENV, ...without } = baseEnv;
             expect(() => AppConfigSchema.parse(without)).toThrow(z.ZodError);
+        });
+    });
+
+    describe('CORS_* env vars', () => {
+        it('parses CORS_ORIGIN as a single string', () => {
+            const result = AppConfigSchema.parse({ ...baseEnv, CORS_ORIGIN: 'https://example.com' });
+            expect(result.cors.origin).toBe('https://example.com');
+        });
+
+        it('splits CORS_ALLOWED_METHODS into an array', () => {
+            const result = AppConfigSchema.parse({ ...baseEnv, CORS_ALLOWED_METHODS: 'GET,POST' });
+            expect(result.cors.allowMethods).toEqual(['GET', 'POST']);
+        });
+
+        it('trims whitespace from comma-separated lists', () => {
+            const result = AppConfigSchema.parse({
+                ...baseEnv,
+                CORS_ALLOWED_HEADERS: ' content-type , authorization ',
+            });
+            expect(result.cors.allowHeaders).toEqual(['content-type', 'authorization']);
+        });
+
+        it('coerces CORS_CREDENTIALS from a string to a boolean', () => {
+            const result = AppConfigSchema.parse({ ...baseEnv, CORS_CREDENTIALS: 'true' });
+            expect(result.cors.credentials).toBe(true);
+        });
+
+        it('coerces CORS_MAX_AGE from a string to a number', () => {
+            const result = AppConfigSchema.parse({ ...baseEnv, CORS_MAX_AGE: '3600' });
+            expect(result.cors.maxAge).toBe(3_600);
+        });
+
+        it('falls back to defaults when CORS_* vars are omitted', () => {
+            const {
+                CORS_ORIGIN,
+                CORS_ALLOWED_METHODS,
+                CORS_ALLOWED_HEADERS,
+                CORS_MAX_AGE,
+                CORS_CREDENTIALS,
+                CORS_EXPOSE_HEADERS,
+                ...withoutCors
+            } = baseEnv;
+            const result = AppConfigSchema.parse(withoutCors);
+            expect(result.cors).toEqual(expectedCors);
+        });
+
+        it('rejects a non-numeric CORS_MAX_AGE', () => {
+            expect(() => AppConfigSchema.parse({ ...baseEnv, CORS_MAX_AGE: 'not-a-number' })).toThrow(z.ZodError);
+        });
+
+        it('rejects a negative CORS_MAX_AGE', () => {
+            expect(() => AppConfigSchema.parse({ ...baseEnv, CORS_MAX_AGE: '-1' })).toThrow(z.ZodError);
         });
     });
 
@@ -181,6 +249,7 @@ describe('createConfig()', () => {
         const config = createConfig(baseEnv);
         expect(config).toEqual({
             app: { name: 'axm-api', nodeEnv: 'development', hostname: '0.0.0.0', port: 8080 },
+            cors: expectedCors,
             sentry: { dsn: undefined },
             logger: { usePretty: true, level: 'info', lokiUrl: 'https://logs.example.com' },
         });

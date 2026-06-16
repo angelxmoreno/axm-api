@@ -1,13 +1,14 @@
 import { z } from 'zod';
 import { LogLevelSchema } from '@/utils/create-logger';
 import { safeZodParser } from '@/utils/safe-zod-parser';
+import {
+    CommaListSchema,
+    OptionalBooleanSchema,
+    OptionalNumberSchema,
+    UrlOrUndefinedSchema,
+} from '@/utils/string-schema-helpers';
 
 const NodeEnvSchema = z.enum(['development', 'production', 'test']);
-
-const UrlOrUndefinedSchema = z
-    .union([z.url(), z.literal('').transform(() => undefined)])
-    .optional()
-    .transform((v) => (v === '' ? undefined : v));
 
 export const AppConfigSchema = z
     .object({
@@ -19,6 +20,12 @@ export const AppConfigSchema = z
         LOGGER_USE_PRETTY: z.stringbool(),
         LOGGER_LEVEL: LogLevelSchema,
         LOGGER_LOKI_URL: UrlOrUndefinedSchema,
+        CORS_ORIGIN: z.string().optional(),
+        CORS_ALLOWED_METHODS: CommaListSchema,
+        CORS_ALLOWED_HEADERS: CommaListSchema,
+        CORS_MAX_AGE: OptionalNumberSchema,
+        CORS_CREDENTIALS: OptionalBooleanSchema,
+        CORS_EXPOSE_HEADERS: CommaListSchema,
     })
     .transform((v) => ({
         app: {
@@ -26,6 +33,14 @@ export const AppConfigSchema = z
             nodeEnv: v.NODE_ENV,
             hostname: v.HTTP_HOSTNAME,
             port: v.HTTP_PORT,
+        },
+        cors: {
+            origin: v.CORS_ORIGIN ?? '*',
+            allowMethods: v.CORS_ALLOWED_METHODS ?? ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+            allowHeaders: v.CORS_ALLOWED_HEADERS ?? ['content-type', 'authorization'],
+            maxAge: v.CORS_MAX_AGE ?? 86_400,
+            credentials: v.CORS_CREDENTIALS ?? false,
+            exposeHeaders: v.CORS_EXPOSE_HEADERS ?? [],
         },
         sentry: {
             dsn: v.SENTRY_DSN,

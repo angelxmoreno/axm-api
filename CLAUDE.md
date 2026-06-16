@@ -21,6 +21,7 @@ AXM API template — a reusable scaffold for Hono + TypeORM + Bun REST APIs. We 
 - `tsconfig.json` — ESM, strict, `types: ["bun"]`. No decorator flags.
 - `src/` — folders scaffolded, `index.ts` is a stub, no real code yet
 - `project-docs/` — holds `PROJECT_INSTRUCTIONS.md` (downstream-facing), `conventions.md` (rules, includes tooling), `implementation.md` (build order), `spec.md` (template — empty), `spec-builder-prompt.md`
+- `tests/` mirrors the `src/` folder structure: same relative path + same filename, with `.test.ts` appended
 
 ## What Is NOT Done Yet
 - Runtime deps not installed (`hono`, `typeorm`, `jsonwebtoken`, `bcrypt`, `dotenv`, `mysql2`)

@@ -235,11 +235,17 @@ builder.registerInstance(value).as<InterfaceName>('InterfaceName').singleInstanc
 
 ### Tests
 
-Every public factory has at least one test. Tests cover:
+Every public factory or middleware has at least one test. Tests cover:
 
 1. **Schema contract** — parse tests for valid inputs, reject tests for invalid ones, default values, transforms.
 2. **Factory smoke** — call the factory with valid input, assert on the output shape (level of a logger, level of config, presence of a registration).
-3. **Wiring factories** (`createContainerBuilder`) — assert the returned builder can be `.build()`-ed and resolves the registered services with the right shape and lifetime.
+3. **Middleware smoke** — call the middleware builder, assert it returns a Hono-compatible function.
+4. **Wiring factories** (`createContainerBuilder`) — assert the returned builder can be `.build()`-ed and resolves the registered services with the right shape and lifetime.
+
+Test files mirror the `src/` path and filename:
+
+- `src/utils/create-config.ts` → `tests/utils/create-config.test.ts`
+- `src/middlewares/cors.middleware.ts` → `tests/middlewares/cors.middleware.test.ts`
 
 Do not mock pino, do not start the dev server. Unit-test the wiring; integration-test the runtime.
 
