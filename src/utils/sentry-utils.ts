@@ -59,12 +59,18 @@ export const tryCapture = <T = unknown>(
         const error = e instanceof Error ? e : new Error(String(e));
 
         if (catchBlock) {
-            const result = await catchBlock(e);
-            if (result instanceof Error) {
-                Sentry.captureException(result);
-                return undefined;
+            try {
+                const result = await catchBlock(e);
+                if (result instanceof Error) {
+                    Sentry.captureException(result);
+                    return undefined;
+                }
+                return result;
+            } catch (catchError) {
+                const thrownError = catchError instanceof Error ? catchError : new Error(String(catchError));
+                Sentry.captureException(thrownError);
+                throw thrownError;
             }
-            return result;
         }
 
         Sentry.captureException(error);

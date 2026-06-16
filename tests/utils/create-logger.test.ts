@@ -60,8 +60,7 @@ describe('createLogger()', () => {
             } catch (e) {
                 expect(e).toBeInstanceOf(Error);
                 expect((e as Error).message).toBe('Creating Logger: Unable to parse schema');
-                // @ts-expect-error - cause is not in Error's type
-                expect(e.cause).toBeInstanceOf(z.ZodError);
+                expect((e as Error).cause).toBeInstanceOf(z.ZodError);
             }
         });
 

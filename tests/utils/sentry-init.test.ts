@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'bun:test';
+import { afterEach, describe, expect, it, spyOn } from 'bun:test';
 import * as Sentry from '@sentry/bun';
 import { type AppConfig, createConfig } from '@/utils/create-config';
 import { initSentry } from '@/utils/sentry-utils';
@@ -56,23 +56,21 @@ describe('initSentry()', () => {
     });
 
     it('skips init when Sentry is already initialized (idempotency)', () => {
-        // First, simulate an existing client by calling initSentry with a
-        // config that WOULD pass all guards — but we can't, because we have
-        // no real DSN. So we test the guard more directly: when getClient()
-        // returns truthy, the function returns early.
-        //
-        // We can simulate this by mocking Sentry.getClient — but @sentry/bun
-        // is a real module and Bun's test runner doesn't auto-mock. Skip
-        // detailed idempotency test; the production code path is one line
-        // (`Sentry.getClient()` short-circuits the || chain).
-        //
-        // What we CAN test: the three guards are correctly composed via ||.
-        // If NODE_ENV is not production, the second disjunct makes the
-        // short-circuit kick in regardless of DSN or client state.
-        const config = buildConfig({ NODE_ENV: 'development' });
-        // Call twice — neither call should init.
+        const config = buildConfig({
+            NODE_ENV: 'production',
+            SENTRY_DSN: 'https://abc@sentry.io/123',
+        });
+
+        const getClientSpy = spyOn(Sentry, 'getClient').mockReturnValue({} as ReturnType<typeof Sentry.getClient>);
+        const initSpy = spyOn(Sentry, 'init').mockImplementation(() => undefined);
+
         initSentry(config);
-        initSentry(config);
-        expect(Sentry.getClient()).toBeUndefined();
+
+        expect(getClientSpy).toHaveBeenCalled();
+        expect(initSpy).not.toHaveBeenCalled();
+        expect(Sentry.getClient()).toBeDefined();
+
+        getClientSpy.mockRestore();
+        initSpy.mockRestore();
     });
 });

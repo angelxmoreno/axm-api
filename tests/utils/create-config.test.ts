@@ -71,6 +71,18 @@ describe('AppConfigSchema', () => {
         it('rejects a non-numeric HTTP_PORT', () => {
             expect(() => AppConfigSchema.parse({ ...baseEnv, HTTP_PORT: 'not-a-number' })).toThrow(z.ZodError);
         });
+
+        it('rejects a negative HTTP_PORT', () => {
+            expect(() => AppConfigSchema.parse({ ...baseEnv, HTTP_PORT: '-1' })).toThrow(z.ZodError);
+        });
+
+        it('rejects a non-integer HTTP_PORT', () => {
+            expect(() => AppConfigSchema.parse({ ...baseEnv, HTTP_PORT: '8080.5' })).toThrow(z.ZodError);
+        });
+
+        it('rejects an HTTP_PORT above the TCP max', () => {
+            expect(() => AppConfigSchema.parse({ ...baseEnv, HTTP_PORT: '65536' })).toThrow(z.ZodError);
+        });
     });
 
     describe('NODE_ENV validation', () => {
@@ -182,8 +194,7 @@ describe('createConfig()', () => {
             expect(e).toBeInstanceOf(Error);
             expect((e as Error).message).toBe('AppConfig: Unable to parse schema');
             // cause is the underlying ZodError
-            // @ts-expect-error - cause is not in Error's type
-            expect(e.cause).toBeInstanceOf(z.ZodError);
+            expect((e as Error).cause).toBeInstanceOf(z.ZodError);
         }
     });
 
