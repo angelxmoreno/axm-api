@@ -1,0 +1,54 @@
+# diffscopeplus default config
+#
+# This file ships with most fields commented out so the binary fails fast on
+# first run with a clear "missing model" error. The fields below marked
+# "pre-filled" are active by default — they are the developer's working
+# setup and serve as a working example. Uncomment or edit any field to fit
+# your own environment.
+#
+# Field reference:
+#   model              — REQUIRED. The primary review model. Format: <adapter>:<model>.
+#                        Adapter is one of: ollama, openai, anthropic, openrouter.
+#   base_url           — LLM API endpoint. Defaults to http://localhost:11434 (ollama).
+#                        Set this if ollama is on a LAN address or non-default port.
+#   model_weak         — Model used for the verification/triage roles. Defaults to `model`.
+#   model_fast         — Model used for quick classification passes. Defaults to `model`.
+#   model_reasoning    — Model used for deep reasoning passes. Defaults to `model`.
+#   model_embedding    — Embedding model for symbol indexing. Defaults to `model`.
+#   context_window     — Model's context window in tokens.
+#   temperature        — Sampling temperature. Lower = more deterministic.
+#   max_tokens         — Max output tokens per LLM call.
+#   strictness         — 1 = high-signal (fewer, higher-confidence findings),
+#                        2 = balanced (default), 3 = deep scan (more findings, more noise).
+#   max_context_chars  — Max characters of context fed per chunk.
+#   max_diff_chars     — Max characters of diff fed per chunk.
+#   context_max_chunks — Max chunks of context per file.
+#   context_budget_chars — Total char budget for context across all chunks.
+#   exclude_patterns   — Glob patterns for files to skip in reviews.
+
+model: ollama:minimax-m3:cloud
+# model: ollama:llama3.1:8b
+# model: openai:gpt-4o
+# model: anthropic:claude-opus-4-5
+
+base_url: http://localhost:11434
+# base_url: http://192.168.1.5:11434
+
+model_weak: ollama:minimax-m3:cloud
+#model_fast: ollama:gemma4:31b-cloud
+model_reasoning: ollama:minimax-m3:cloud
+#model_embedding: ollama:embeddinggemma:latest
+
+# context_window: 8192
+# temperature: 0.1
+# max_tokens: 4096
+# strictness: 2
+# max_context_chars: 8000
+# max_diff_chars: 16000
+# context_max_chunks: 8
+# context_budget_chars: 8000
+
+# exclude_patterns:
+#     - '**/*.generated.*'
+#     - '**/node_modules/**'
+#     - '**/.git/**'

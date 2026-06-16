@@ -45,7 +45,7 @@ Read `project-docs/conventions.md` before writing any code. Hard rules:
 - **Biome** is the only linter/formatter. No ESLint, no Prettier.
 - **Fallow** is the code health tool. 4 commands: dead-code, dupes, health, audit. `check:audit` is not in the pre-commit hook (only dead-code, dupes, health are).
 - **commitlint** enforces conventional commits. Commits like `wip` or `fix` alone will be rejected.
-- **lefthook** runs on `git commit`. To bypass in emergency: `git commit --no-verify` (avoid).
+- **lefthook** runs on `git commit`. Never bypass it with `--no-verify`. If a pre-commit check blocks a commit, surface the failure to the user and stop — do not commit until the user addresses the situation.
 - **No `bun.lockb`** — this project uses text-format `bun.lock`, which is committed for reproducible builds.
 
 ## Workflow
