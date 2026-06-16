@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'bun:test';
 import { Hono } from 'hono';
-import pino, { type Logger } from 'pino';
 import { createRequestLoggerMiddleware } from '@/middlewares/request-logger.middleware';
 import { createRequestTrackingMiddleware } from '@/middlewares/request-tracking.middleware';
 import type { AppEnv } from '@/schemas/hono';
+import { createCapturingLogger } from '../test-helpers/create-capturing-logger';
 
 type CapturedLog = {
     requestId: string;
@@ -12,18 +12,6 @@ type CapturedLog = {
     status: number;
     durationMs: number;
     msg: string;
-};
-
-const createCapturingLogger = (): { logger: Logger; logs: CapturedLog[] } => {
-    const logs: CapturedLog[] = [];
-    const stream = {
-        write: (line: string) => {
-            const parsed = JSON.parse(line) as CapturedLog;
-            logs.push(parsed);
-        },
-    };
-    const logger = pino({ level: 'info' }, stream as unknown as pino.DestinationStream);
-    return { logger, logs };
 };
 
 describe('createRequestLoggerMiddleware()', () => {
@@ -38,7 +26,7 @@ describe('createRequestLoggerMiddleware()', () => {
         expect(res.status).toBe(200);
         expect(logs).toHaveLength(1);
 
-        const [log] = logs;
+        const [log] = logs as CapturedLog[];
         expect(log.method).toBe('GET');
         expect(log.path).toBe('/hello');
         expect(log.status).toBe(200);
@@ -62,7 +50,7 @@ describe('createRequestLoggerMiddleware()', () => {
         expect(res.status).toBe(500);
         expect(logs).toHaveLength(1);
 
-        const [log] = logs;
+        const [log] = logs as CapturedLog[];
         expect(log.method).toBe('GET');
         expect(log.path).toBe('/error');
         expect(log.status).toBe(500);

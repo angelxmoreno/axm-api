@@ -14,6 +14,26 @@ const toHttpException = (error: unknown): HTTPException => {
     return new HTTPException(500, { message: 'Unknown error', cause: error });
 };
 
+const buildErrorPayload = (
+    exception: HTTPException,
+    requestId: string,
+    originalStack: string | undefined,
+    isDevelopment: boolean
+): { requestId: string; statusCode: number; errorMessage: string; errorStack: string | undefined } => ({
+    requestId,
+    statusCode: exception.status,
+    errorMessage: isDevelopment ? exception.message : 'Internal Server Error',
+    errorStack: isDevelopment ? (originalStack ?? exception.stack) : undefined,
+});
+
+const logErrorSafely = (logger: Logger, payload: Record<string, unknown>): void => {
+    try {
+        logger.error(payload);
+    } catch (logError) {
+        console.error('Failed to log error:', logError);
+    }
+};
+
 export type ErrorHandlerOptions = {
     logger: Logger;
     isDevelopment: boolean;
@@ -26,17 +46,8 @@ export const createErrorHandlerMiddleware = (options: ErrorHandlerOptions): Erro
         const exception = toHttpException(error);
         const requestId = getOrCreateRequestId(c);
 
-        const payload = {
-            requestId,
-            statusCode: exception.status,
-            errorMessage: isDevelopment ? exception.message : 'Internal Server Error',
-            errorStack: isDevelopment ? (originalStack ?? exception.stack) : undefined,
-        };
-        try {
-            logger.error(payload);
-        } catch (logError) {
-            console.error('Failed to log error:', logError);
-        }
+        const payload = buildErrorPayload(exception, requestId, originalStack, isDevelopment);
+        logErrorSafely(logger, payload);
 
         return c.json(payload, exception.status);
     };
