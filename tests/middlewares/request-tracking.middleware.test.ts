@@ -62,6 +62,13 @@ describe('createRequestTrackingMiddleware()', () => {
         expect(typeof captured.requestId).toBe('string');
     });
 
+    it('sets x-request-id response header', async () => {
+        const { app } = buildApp();
+
+        const res = await app.request('/', { headers: { 'x-request-id': 'header-id' } });
+        expect(res.headers.get('x-request-id')).toBe('header-id');
+    });
+
     it('sets requestStartTime on the context', async () => {
         const { app, captured } = buildApp();
 
