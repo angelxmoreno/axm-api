@@ -1,7 +1,7 @@
 import type { MiddlewareHandler } from 'hono';
 import type { Logger } from 'pino';
 import type { AppEnv } from '@/schemas/hono';
-import { getRequestId, getRequestStartTime } from '@/utils/context-helpers';
+import { getOrCreateRequestId, getOrCreateRequestStartTime } from '@/utils/context-helpers';
 
 export type RequestLoggerOptions = {
     logger: Logger;
@@ -10,13 +10,13 @@ export type RequestLoggerOptions = {
 export const createRequestLoggerMiddleware = (options: RequestLoggerOptions): MiddlewareHandler<AppEnv> => {
     const { logger } = options;
     return async (c, next) => {
-        const startTime = getRequestStartTime(c);
+        const startTime = getOrCreateRequestStartTime(c);
 
         try {
             await next();
         } finally {
             const durationMs = Date.now() - startTime;
-            const requestId = getRequestId(c);
+            const requestId = getOrCreateRequestId(c);
 
             logger.info(
                 {

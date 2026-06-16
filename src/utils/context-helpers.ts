@@ -9,17 +9,25 @@ const normalizeRequestId = (requestId: unknown): string | undefined => {
 
 export const getHeaderRequestId = (c: Context<AppEnv>): string | undefined =>
     normalizeRequestId(c.req.header(REQUEST_ID_HEADER));
+
 export const getContextRequestId = (c: Context<AppEnv>): string | undefined => normalizeRequestId(c.get('requestId'));
 
-export const getRequestId = (c: Context<AppEnv>): string => {
+export const hasRequestId = (c: Context<AppEnv>): boolean => normalizeRequestId(c.get('requestId')) !== undefined;
+
+export const getOrCreateRequestId = (c: Context<AppEnv>): string => {
     const requestId = normalizeRequestId(c.get('requestId'));
     if (typeof requestId === 'string' && requestId.length > 0) return requestId;
 
-    throw new Error('requestId is not set on context');
+    const newId = Bun.randomUUIDv7();
+    c.set('requestId', newId);
+    return newId;
 };
 
-export const getRequestStartTime = (c: Context<AppEnv>): number => {
+export const getOrCreateRequestStartTime = (c: Context<AppEnv>): number => {
     const requestStartTime = c.get('requestStartTime');
     if (typeof requestStartTime === 'number' && requestStartTime > 0) return requestStartTime;
-    throw new Error('requestStartTime is not set on context');
+
+    const timeNow = Date.now();
+    c.set('requestStartTime', timeNow);
+    return timeNow;
 };
