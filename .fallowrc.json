@@ -8,5 +8,5 @@
     "health": {
         "ignore": ["tests/**/*.test.ts"]
     },
-    "ignorePatterns": ["src/middlewares/request-logger.middleware.ts", "src/middlewares/secure-headers.middleware.ts"]
+    "ignorePatterns": ["src/middlewares/request-logger.middleware.ts"]
 }

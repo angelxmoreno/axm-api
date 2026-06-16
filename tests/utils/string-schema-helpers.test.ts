@@ -4,8 +4,24 @@ import {
     CommaListSchema,
     OptionalBooleanSchema,
     OptionalNumberSchema,
+    OverridableHeaderSchema,
+    parseStringBoolean,
     UrlOrUndefinedSchema,
 } from '@/utils/string-schema-helpers';
+
+describe('parseStringBoolean()', () => {
+    it.each(['true', '1', 'yes', 'on', 'y', 'enabled', 'TRUE'])('coerces %p to true', (value) => {
+        expect(parseStringBoolean(value)).toBe(true);
+    });
+
+    it.each(['false', '0', 'no', 'off', 'n', 'disabled', 'FALSE'])('coerces %p to false', (value) => {
+        expect(parseStringBoolean(value)).toBe(false);
+    });
+
+    it('throws for an ambiguous boolean string', () => {
+        expect(() => parseStringBoolean('maybe')).toThrow('Unable to parse boolean: maybe');
+    });
+});
 
 describe('UrlOrUndefinedSchema', () => {
     it('accepts a valid URL string', () => {
@@ -56,6 +72,37 @@ describe('CommaListSchema', () => {
 
     it('rejects a non-string value', () => {
         expect(() => CommaListSchema.parse(123)).toThrow(z.ZodError);
+    });
+});
+
+describe('OverridableHeaderSchema', () => {
+    it('coerces a truthy string to true', () => {
+        const result = OverridableHeaderSchema.parse('true');
+        expect(result).toBe(true);
+    });
+
+    it('coerces a falsy string to false', () => {
+        const result = OverridableHeaderSchema.parse('false');
+        expect(result).toBe(false);
+    });
+
+    it('returns the literal string when not a boolean keyword', () => {
+        const result = OverridableHeaderSchema.parse('DENY');
+        expect(result).toBe('DENY');
+    });
+
+    it('returns undefined for an empty string', () => {
+        const result = OverridableHeaderSchema.parse('');
+        expect(result).toBeUndefined();
+    });
+
+    it('returns undefined for undefined input', () => {
+        const result = OverridableHeaderSchema.parse(undefined);
+        expect(result).toBeUndefined();
+    });
+
+    it('rejects a non-string value', () => {
+        expect(() => OverridableHeaderSchema.parse(123)).toThrow(z.ZodError);
     });
 });
 

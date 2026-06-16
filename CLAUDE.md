@@ -52,10 +52,11 @@ Read `project-docs/conventions.md` before writing any code. Hard rules:
 ## Workflow
 1. User asks for a change or we hit a build step
 2. Read `project-docs/conventions.md` if writing code, `project-docs/implementation.md` if doing a build step
-3. Make the change
-4. If it's a code change, run `bun lint:fix` and `bun check:types` before committing
-5. If it touches a build step, update `project-docs/implementation.md` to check the box
-6. Commit with conventional format: `type(scope): subject`
+3. **If the change is non-trivial, has multiple reasonable approaches, or crosses file boundaries, surface the options to the user before implementing.** Do not silently make architectural decisions, even if the choice looks obvious.
+4. Make the change
+5. If it's a code change, run `bun lint:fix` and `bun check:types` before committing
+6. If it touches a build step, update `project-docs/implementation.md` to check the box
+7. Commit with conventional format: `type(scope): subject`
 
 ## Don't Do
 - Don't add a `package.json` dependency without updating `project-docs/implementation.md` step 2
@@ -63,6 +64,7 @@ Read `project-docs/conventions.md` before writing any code. Hard rules:
 - Don't write code in the project root outside `src/`
 - Don't put business logic in route handlers
 - Don't commit without running pre-commit checks (they should pass automatically)
+- Don't make non-trivial architectural or cross-file changes without flagging them to the user first
 
 ## File Roles
 

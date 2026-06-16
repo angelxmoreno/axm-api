@@ -13,6 +13,22 @@ const expectedCors = {
     exposeHeaders: [],
 };
 
+const expectedSecureHeaders = {
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: true,
+    crossOriginOpenerPolicy: true,
+    originAgentCluster: true,
+    referrerPolicy: true,
+    strictTransportSecurity: true,
+    xContentTypeOptions: true,
+    xDnsPrefetchControl: true,
+    xDownloadOptions: true,
+    xFrameOptions: true,
+    xPermittedCrossDomainPolicies: true,
+    xXssProtection: true,
+    removePoweredBy: true,
+};
+
 const baseEnv: Record<string, string | undefined> = {
     APP_NAME: 'axm-api',
     SENTRY_DSN: '',
@@ -28,11 +44,17 @@ const baseEnv: Record<string, string | undefined> = {
     CORS_MAX_AGE: String(expectedCors.maxAge),
     CORS_CREDENTIALS: String(expectedCors.credentials),
     CORS_EXPOSE_HEADERS: expectedCors.exposeHeaders.join(','),
+    ...Object.fromEntries(
+        Object.entries(expectedSecureHeaders).map(([key, value]) => {
+            const envKey = `SECURE_HEADERS_${key.replace(/[A-Z]/g, (letter) => `_${letter}`).toUpperCase()}`;
+            return [envKey, String(value)];
+        })
+    ),
 };
 
 describe('AppConfigSchema', () => {
     describe('shape transformation', () => {
-        it('maps flat env keys to a nested { app, cors, sentry, logger } object', () => {
+        it('maps flat env keys to a nested { app, cors, secureHeaders, sentry, logger } object', () => {
             const result = AppConfigSchema.parse(baseEnv);
             expect(result).toEqual({
                 app: {
@@ -42,6 +64,7 @@ describe('AppConfigSchema', () => {
                     port: 8080,
                 },
                 cors: expectedCors,
+                secureHeaders: expectedSecureHeaders,
                 sentry: {
                     dsn: undefined,
                 },
@@ -169,6 +192,34 @@ describe('AppConfigSchema', () => {
         });
     });
 
+    describe('SECURE_HEADERS_* env vars', () => {
+        it('coerces a boolean string to a boolean header value', () => {
+            const result = AppConfigSchema.parse({ ...baseEnv, SECURE_HEADERS_X_FRAME_OPTIONS: 'false' });
+            expect(result.secureHeaders.xFrameOptions).toBe(false);
+        });
+
+        it('passes through a literal header string value', () => {
+            const result = AppConfigSchema.parse({ ...baseEnv, SECURE_HEADERS_X_FRAME_OPTIONS: 'DENY' });
+            expect(result.secureHeaders.xFrameOptions).toBe('DENY');
+        });
+
+        it('coerces SECURE_HEADERS_REMOVE_POWERED_BY to a boolean', () => {
+            const result = AppConfigSchema.parse({ ...baseEnv, SECURE_HEADERS_REMOVE_POWERED_BY: 'false' });
+            expect(result.secureHeaders.removePoweredBy).toBe(false);
+        });
+
+        it('falls back to defaults when SECURE_HEADERS_* vars are omitted', () => {
+            const secureHeaderKeys = Object.keys(expectedSecureHeaders).map((key) => {
+                return `SECURE_HEADERS_${key.replace(/[A-Z]/g, (letter) => `_${letter}`).toUpperCase()}`;
+            });
+            const withoutSecureHeaders = Object.fromEntries(
+                Object.entries(baseEnv).filter(([key]) => !secureHeaderKeys.includes(key))
+            );
+            const result = AppConfigSchema.parse(withoutSecureHeaders);
+            expect(result.secureHeaders).toEqual(expectedSecureHeaders);
+        });
+    });
+
     describe('SENTRY_DSN validation', () => {
         it('accepts a valid URL', () => {
             const result = AppConfigSchema.parse({ ...baseEnv, SENTRY_DSN: 'https://abc@sentry.io/123' });
@@ -250,6 +301,7 @@ describe('createConfig()', () => {
         expect(config).toEqual({
             app: { name: 'axm-api', nodeEnv: 'development', hostname: '0.0.0.0', port: 8080 },
             cors: expectedCors,
+            secureHeaders: expectedSecureHeaders,
             sentry: { dsn: undefined },
             logger: { usePretty: true, level: 'info', lokiUrl: 'https://logs.example.com' },
         });
