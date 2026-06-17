@@ -10,10 +10,7 @@ export const parseStringBoolean = (value: string): boolean => {
     throw new Error(`Unable to parse boolean: ${value}`);
 };
 
-export const UrlOrUndefinedSchema = z
-    .union([z.url(), z.literal('').transform(() => undefined)])
-    .optional()
-    .transform((v) => (v === '' ? undefined : v));
+export const UrlOrUndefinedSchema = z.union([z.url(), z.literal('').transform(() => undefined)]).optional();
 
 export const CommaListSchema = z
     .string()

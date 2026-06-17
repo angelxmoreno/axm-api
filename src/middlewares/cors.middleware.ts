@@ -15,7 +15,7 @@ const AllowMethodsFunctionSchema = z.custom<AllowMethodsResolver>((value) => typ
 });
 
 export const CorsOptionsSchema = z.object({
-    origin: z.union([z.string(), z.array(z.string()), OriginFunctionSchema]).default('*'),
+    origin: z.union([z.string().min(1), z.array(z.string().min(1)), OriginFunctionSchema]).default('*'),
     allowMethods: z
         .union([z.array(z.string()), AllowMethodsFunctionSchema])
         .default(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']),
@@ -27,4 +27,7 @@ export const CorsOptionsSchema = z.object({
 
 export type CorsOptions = z.input<typeof CorsOptionsSchema>;
 
-export const createCorsMiddleware = (options?: CorsOptions): MiddlewareHandler => cors(options);
+export const createCorsMiddleware = (options?: CorsOptions): MiddlewareHandler => {
+    const parsed = CorsOptionsSchema.parse(options ?? {});
+    return cors(parsed);
+};

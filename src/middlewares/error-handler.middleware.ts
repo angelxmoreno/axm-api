@@ -18,13 +18,28 @@ const buildErrorPayload = (
     exception: HTTPException,
     requestId: string,
     originalStack: string | undefined,
+    originalError: unknown,
     isDevelopment: boolean
-): { requestId: string; statusCode: number; errorMessage: string; errorStack: string | undefined } => ({
-    requestId,
-    statusCode: exception.status,
-    errorMessage: isDevelopment ? exception.message : 'Internal Server Error',
-    errorStack: isDevelopment ? (originalStack ?? exception.stack) : undefined,
-});
+): { response: Record<string, unknown>; log: Record<string, unknown> } => {
+    const base = {
+        requestId,
+        statusCode: exception.status,
+        errorMessage: exception.message,
+        errorStack: originalStack ?? exception.stack,
+    };
+
+    return {
+        response: {
+            ...base,
+            errorMessage: isDevelopment ? base.errorMessage : 'Internal Server Error',
+            errorStack: isDevelopment ? base.errorStack : undefined,
+        },
+        log: {
+            ...base,
+            originalError: originalError instanceof Error ? originalError.message : originalError,
+        },
+    };
+};
 
 const logErrorSafely = (logger: Logger, payload: Record<string, unknown>): void => {
     try {
@@ -46,9 +61,9 @@ export const createErrorHandlerMiddleware = (options: ErrorHandlerOptions): Erro
         const exception = toHttpException(error);
         const requestId = getOrCreateRequestId(c);
 
-        const payload = buildErrorPayload(exception, requestId, originalStack, isDevelopment);
-        logErrorSafely(logger, payload);
+        const { response, log } = buildErrorPayload(exception, requestId, originalStack, error, isDevelopment);
+        logErrorSafely(logger, log);
 
-        return c.json(payload, exception.status);
+        return c.json(response, exception.status);
     };
 };

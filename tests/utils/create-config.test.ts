@@ -191,6 +191,10 @@ describe('AppConfigSchema', () => {
             expect(result.cors).toEqual(expectedCors);
         });
 
+        it('rejects an empty CORS_ORIGIN', () => {
+            expect(() => AppConfigSchema.parse({ ...baseEnv, CORS_ORIGIN: '' })).toThrow(z.ZodError);
+        });
+
         it('rejects a non-numeric CORS_MAX_AGE', () => {
             expect(() => AppConfigSchema.parse({ ...baseEnv, CORS_MAX_AGE: 'not-a-number' })).toThrow(z.ZodError);
         });

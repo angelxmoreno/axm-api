@@ -53,6 +53,16 @@ describe('createRateLimiterMiddleware()', () => {
         expect(statuses).toEqual([200, 429]);
     });
 
+    it('falls back to unknown when x-forwarded-for starts with a comma', async () => {
+        const app = buildApp(1, 60_000);
+
+        const first = await app.request('/', { headers: { 'x-forwarded-for': ',1.2.3.4' } });
+        const second = await app.request('/', { headers: { 'x-forwarded-for': ',1.2.3.4' } });
+
+        expect(first.status).toBe(200);
+        expect(second.status).toBe(429);
+    });
+
     it('applies default values when config is empty', async () => {
         const app = new Hono<AppEnv>();
         app.use(createRateLimiterMiddleware({ limit: 1, windowMs: 60_000 }));

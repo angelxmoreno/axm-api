@@ -17,7 +17,8 @@ export type RateLimiterConfig = z.infer<typeof RateLimiterConfigSchema>;
 const extractClientKey = (c: Context): string => {
     const forwardedFor = c.req.header('x-forwarded-for');
     if (forwardedFor) {
-        return forwardedFor.split(',')[0]?.trim() ?? 'unknown';
+        const first = forwardedFor.split(',')[0]?.trim();
+        if (first) return first;
     }
 
     return c.req.header('x-real-ip') ?? 'unknown';

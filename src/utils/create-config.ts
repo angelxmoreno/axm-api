@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { type CorsOptions, CorsOptionsSchema } from '@/middlewares/cors.middleware';
 import { type RateLimiterConfig, RateLimiterConfigSchema } from '@/middlewares/rate-limiter.middleware';
 import { type SecureHeadersOptions, SecureHeadersOptionsSchema } from '@/middlewares/secure-headers.middleware';
 import { LogLevelSchema } from '@/utils/create-logger';
@@ -33,14 +34,16 @@ const buildAppConfig = (v: z.infer<typeof RawAppConfigSchema>) => ({
     },
 });
 
-const buildCorsConfig = (v: z.infer<typeof RawAppConfigSchema>) => ({
-    origin: v.CORS_ORIGIN ?? '*',
-    allowMethods: v.CORS_ALLOWED_METHODS ?? ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowHeaders: v.CORS_ALLOWED_HEADERS ?? ['content-type', 'authorization'],
-    maxAge: v.CORS_MAX_AGE ?? 86_400,
-    credentials: v.CORS_CREDENTIALS ?? false,
-    exposeHeaders: v.CORS_EXPOSE_HEADERS ?? [],
-});
+const buildCorsConfig = (v: z.infer<typeof RawAppConfigSchema>): CorsOptions => {
+    return CorsOptionsSchema.parse({
+        origin: v.CORS_ORIGIN,
+        allowMethods: v.CORS_ALLOWED_METHODS,
+        allowHeaders: v.CORS_ALLOWED_HEADERS,
+        maxAge: v.CORS_MAX_AGE,
+        credentials: v.CORS_CREDENTIALS,
+        exposeHeaders: v.CORS_EXPOSE_HEADERS,
+    });
+};
 
 const buildRateLimiterConfig = (v: z.infer<typeof RawAppConfigSchema>): RateLimiterConfig => {
     return RateLimiterConfigSchema.parse({
@@ -76,7 +79,7 @@ const RawAppConfigSchema = z.object({
     LOGGER_USE_PRETTY: z.stringbool(),
     LOGGER_LEVEL: LogLevelSchema,
     LOGGER_LOKI_URL: UrlOrUndefinedSchema,
-    CORS_ORIGIN: z.string().optional(),
+    CORS_ORIGIN: z.string().min(1).optional(),
     CORS_ALLOWED_METHODS: CommaListSchema,
     CORS_ALLOWED_HEADERS: CommaListSchema,
     CORS_MAX_AGE: OptionalNumberSchema,

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'bun:test';
-import { Hono } from 'hono';
+import { type Context, Hono } from 'hono';
 import type { AppEnv } from '@/schemas/hono';
 import { getOrCreateRequestId, getOrCreateRequestStartTime, hasRequestId } from '@/utils/context-helpers';
 
-const runInRoute = async <T>(fn: (c: Context) => T): Promise<T> => {
+const runInRoute = async <T>(fn: (c: Context<AppEnv>) => T): Promise<T> => {
     const app = new Hono<AppEnv>();
     let captured: T | undefined;
 
@@ -15,8 +15,6 @@ const runInRoute = async <T>(fn: (c: Context) => T): Promise<T> => {
     await app.request('/');
     return captured as T;
 };
-
-import type { Context } from 'hono';
 
 describe('getOrCreateRequestId()', () => {
     it('returns an existing requestId', async () => {
