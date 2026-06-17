@@ -78,7 +78,7 @@ The template ships with strict dev tooling. Configure all of it before writing a
   - `src/errors/`
 
 ### 2. Install deps
-- [ ] Runtime: `hono`, `typeorm`, `jsonwebtoken`, `bcrypt`, `dotenv`
+- [ ] Runtime: `hono`, `hono-rate-limiter`, `typeorm`, `jsonwebtoken`, `bcrypt`, `dotenv`
 - [ ] **No `reflect-metadata`** — entities use `EntitySchema`, no decorator metadata needed
 - [ ] Dev: `typescript`, `@types/jsonwebtoken`, `@types/bcrypt`, `bun-types`
 - [ ] DB driver: `mysql2` (MariaDB default; swap later if needed)

@@ -6,5 +6,5 @@ import { initSentry } from '@/utils/sentry-utils';
 if (appConfig.app.nodeEnv === 'production') {
     initSentry(appConfig);
 }
-const logger = appContainer.resolveType<Logger>();
+const logger = appContainer.resolveType<Logger>('Logger');
 logger.info('Starting app container');

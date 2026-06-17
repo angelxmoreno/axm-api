@@ -30,6 +30,7 @@
         "@novadi/core": "^0.6.1",
         "@sentry/bun": "^10.57.0",
         "hono": "^4.12.25",
+        "hono-rate-limiter": "^0.5.3",
         "pino": "^10.3.1",
         "pino-loki": "^3.0.0",
         "pino-pretty": "^13.1.3",
@@ -44,5 +45,8 @@
         "lefthook": "^2.1.9",
         "typescript": "^6.0.3"
     },
-    "peerDependencies": {}
+    "peerDependencies": {},
+    "engines": {
+        "bun": ">=1.3.0"
+    }
 }

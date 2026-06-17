@@ -4,6 +4,36 @@ import { AppConfigSchema, createConfig } from '@/utils/create-config';
 
 // Env vars are always strings. Schema must coerce / accept strings for every
 // field. This file only tests the env-driven path.
+const expectedCors = {
+    origin: '*',
+    allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowHeaders: ['content-type', 'authorization'],
+    maxAge: 86_400,
+    credentials: false,
+    exposeHeaders: [],
+};
+
+const expectedSecureHeaders = {
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: true,
+    crossOriginOpenerPolicy: true,
+    originAgentCluster: true,
+    referrerPolicy: true,
+    strictTransportSecurity: true,
+    xContentTypeOptions: true,
+    xDnsPrefetchControl: true,
+    xDownloadOptions: true,
+    xFrameOptions: true,
+    xPermittedCrossDomainPolicies: true,
+    xXssProtection: true,
+    removePoweredBy: true,
+};
+
+const expectedRateLimiter = {
+    windowMs: 900_000,
+    limit: 100,
+};
+
 const baseEnv: Record<string, string | undefined> = {
     APP_NAME: 'axm-api',
     SENTRY_DSN: '',
@@ -13,11 +43,25 @@ const baseEnv: Record<string, string | undefined> = {
     LOGGER_USE_PRETTY: 'true',
     LOGGER_LEVEL: 'info',
     LOGGER_LOKI_URL: 'https://logs.example.com',
+    CORS_ORIGIN: expectedCors.origin,
+    CORS_ALLOWED_METHODS: expectedCors.allowMethods.join(','),
+    CORS_ALLOWED_HEADERS: expectedCors.allowHeaders.join(','),
+    CORS_MAX_AGE: String(expectedCors.maxAge),
+    CORS_CREDENTIALS: String(expectedCors.credentials),
+    CORS_EXPOSE_HEADERS: expectedCors.exposeHeaders.join(','),
+    RATE_LIMITER_WINDOW_MS: String(expectedRateLimiter.windowMs),
+    RATE_LIMITER_LIMIT: String(expectedRateLimiter.limit),
+    ...Object.fromEntries(
+        Object.entries(expectedSecureHeaders).map(([key, value]) => {
+            const envKey = `SECURE_HEADERS_${key.replace(/[A-Z]/g, (letter) => `_${letter}`).toUpperCase()}`;
+            return [envKey, String(value)];
+        })
+    ),
 };
 
 describe('AppConfigSchema', () => {
     describe('shape transformation', () => {
-        it('maps flat env keys to a nested { app, sentry, logger } object', () => {
+        it('maps flat env keys to a nested { app, cors, secureHeaders, sentry, logger } object', () => {
             const result = AppConfigSchema.parse(baseEnv);
             expect(result).toEqual({
                 app: {
@@ -26,6 +70,9 @@ describe('AppConfigSchema', () => {
                     hostname: '0.0.0.0',
                     port: 8080,
                 },
+                cors: expectedCors,
+                secureHeaders: expectedSecureHeaders,
+                rateLimiter: expectedRateLimiter,
                 sentry: {
                     dsn: undefined,
                 },
@@ -98,6 +145,90 @@ describe('AppConfigSchema', () => {
         it('rejects when missing', () => {
             const { NODE_ENV, ...without } = baseEnv;
             expect(() => AppConfigSchema.parse(without)).toThrow(z.ZodError);
+        });
+    });
+
+    describe('CORS_* env vars', () => {
+        it('parses CORS_ORIGIN as a single string', () => {
+            const result = AppConfigSchema.parse({ ...baseEnv, CORS_ORIGIN: 'https://example.com' });
+            expect(result.cors.origin).toBe('https://example.com');
+        });
+
+        it('splits CORS_ALLOWED_METHODS into an array', () => {
+            const result = AppConfigSchema.parse({ ...baseEnv, CORS_ALLOWED_METHODS: 'GET,POST' });
+            expect(result.cors.allowMethods).toEqual(['GET', 'POST']);
+        });
+
+        it('trims whitespace from comma-separated lists', () => {
+            const result = AppConfigSchema.parse({
+                ...baseEnv,
+                CORS_ALLOWED_HEADERS: ' content-type , authorization ',
+            });
+            expect(result.cors.allowHeaders).toEqual(['content-type', 'authorization']);
+        });
+
+        it('coerces CORS_CREDENTIALS from a string to a boolean', () => {
+            const result = AppConfigSchema.parse({ ...baseEnv, CORS_CREDENTIALS: 'true' });
+            expect(result.cors.credentials).toBe(true);
+        });
+
+        it('coerces CORS_MAX_AGE from a string to a number', () => {
+            const result = AppConfigSchema.parse({ ...baseEnv, CORS_MAX_AGE: '3600' });
+            expect(result.cors.maxAge).toBe(3_600);
+        });
+
+        it('falls back to defaults when CORS_* vars are omitted', () => {
+            const {
+                CORS_ORIGIN,
+                CORS_ALLOWED_METHODS,
+                CORS_ALLOWED_HEADERS,
+                CORS_MAX_AGE,
+                CORS_CREDENTIALS,
+                CORS_EXPOSE_HEADERS,
+                ...withoutCors
+            } = baseEnv;
+            const result = AppConfigSchema.parse(withoutCors);
+            expect(result.cors).toEqual(expectedCors);
+        });
+
+        it('rejects an empty CORS_ORIGIN', () => {
+            expect(() => AppConfigSchema.parse({ ...baseEnv, CORS_ORIGIN: '' })).toThrow(z.ZodError);
+        });
+
+        it('rejects a non-numeric CORS_MAX_AGE', () => {
+            expect(() => AppConfigSchema.parse({ ...baseEnv, CORS_MAX_AGE: 'not-a-number' })).toThrow(z.ZodError);
+        });
+
+        it('rejects a negative CORS_MAX_AGE', () => {
+            expect(() => AppConfigSchema.parse({ ...baseEnv, CORS_MAX_AGE: '-1' })).toThrow(z.ZodError);
+        });
+    });
+
+    describe('SECURE_HEADERS_* env vars', () => {
+        it('coerces a boolean string to a boolean header value', () => {
+            const result = AppConfigSchema.parse({ ...baseEnv, SECURE_HEADERS_X_FRAME_OPTIONS: 'false' });
+            expect(result.secureHeaders.xFrameOptions).toBe(false);
+        });
+
+        it('passes through a literal header string value', () => {
+            const result = AppConfigSchema.parse({ ...baseEnv, SECURE_HEADERS_X_FRAME_OPTIONS: 'DENY' });
+            expect(result.secureHeaders.xFrameOptions).toBe('DENY');
+        });
+
+        it('coerces SECURE_HEADERS_REMOVE_POWERED_BY to a boolean', () => {
+            const result = AppConfigSchema.parse({ ...baseEnv, SECURE_HEADERS_REMOVE_POWERED_BY: 'false' });
+            expect(result.secureHeaders.removePoweredBy).toBe(false);
+        });
+
+        it('falls back to defaults when SECURE_HEADERS_* vars are omitted', () => {
+            const secureHeaderKeys = Object.keys(expectedSecureHeaders).map((key) => {
+                return `SECURE_HEADERS_${key.replace(/[A-Z]/g, (letter) => `_${letter}`).toUpperCase()}`;
+            });
+            const withoutSecureHeaders = Object.fromEntries(
+                Object.entries(baseEnv).filter(([key]) => !secureHeaderKeys.includes(key))
+            );
+            const result = AppConfigSchema.parse(withoutSecureHeaders);
+            expect(result.secureHeaders).toEqual(expectedSecureHeaders);
         });
     });
 
@@ -181,6 +312,9 @@ describe('createConfig()', () => {
         const config = createConfig(baseEnv);
         expect(config).toEqual({
             app: { name: 'axm-api', nodeEnv: 'development', hostname: '0.0.0.0', port: 8080 },
+            cors: expectedCors,
+            secureHeaders: expectedSecureHeaders,
+            rateLimiter: expectedRateLimiter,
             sentry: { dsn: undefined },
             logger: { usePretty: true, level: 'info', lokiUrl: 'https://logs.example.com' },
         });
