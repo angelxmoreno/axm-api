@@ -29,6 +29,11 @@ const expectedSecureHeaders = {
     removePoweredBy: true,
 };
 
+const expectedRateLimiter = {
+    windowMs: 900_000,
+    limit: 100,
+};
+
 const baseEnv: Record<string, string | undefined> = {
     APP_NAME: 'axm-api',
     SENTRY_DSN: '',
@@ -44,6 +49,8 @@ const baseEnv: Record<string, string | undefined> = {
     CORS_MAX_AGE: String(expectedCors.maxAge),
     CORS_CREDENTIALS: String(expectedCors.credentials),
     CORS_EXPOSE_HEADERS: expectedCors.exposeHeaders.join(','),
+    RATE_LIMITER_WINDOW_MS: String(expectedRateLimiter.windowMs),
+    RATE_LIMITER_LIMIT: String(expectedRateLimiter.limit),
     ...Object.fromEntries(
         Object.entries(expectedSecureHeaders).map(([key, value]) => {
             const envKey = `SECURE_HEADERS_${key.replace(/[A-Z]/g, (letter) => `_${letter}`).toUpperCase()}`;
@@ -65,6 +72,7 @@ describe('AppConfigSchema', () => {
                 },
                 cors: expectedCors,
                 secureHeaders: expectedSecureHeaders,
+                rateLimiter: expectedRateLimiter,
                 sentry: {
                     dsn: undefined,
                 },
@@ -302,6 +310,7 @@ describe('createConfig()', () => {
             app: { name: 'axm-api', nodeEnv: 'development', hostname: '0.0.0.0', port: 8080 },
             cors: expectedCors,
             secureHeaders: expectedSecureHeaders,
+            rateLimiter: expectedRateLimiter,
             sentry: { dsn: undefined },
             logger: { usePretty: true, level: 'info', lokiUrl: 'https://logs.example.com' },
         });

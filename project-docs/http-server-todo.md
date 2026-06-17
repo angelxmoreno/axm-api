@@ -6,7 +6,7 @@ Items to consider for the `feat/hono-server` branch and future branches. Routes 
 
 ## Middleware to Add
 
-1. **Rate limiter**
+1. **Rate limiter** ✅
    - Use `hono-rate-limiter` or a simple in-memory token-bucket middleware.
    - Good for API hardening before exposing the server.
 
@@ -18,7 +18,7 @@ Items to consider for the `feat/hono-server` branch and future branches. Routes 
    - Abort requests that run longer than a configured threshold.
    - Should probably return a typed error handled by the error middleware.
 
-4. **Request ID response header**
+4. **Request ID response header** ✅
    - Set `X-Request-Id` on every response from the tracking middleware or a dedicated finalizer middleware.
    - Makes tracing easier for clients.
 
@@ -26,7 +26,7 @@ Items to consider for the `feat/hono-server` branch and future branches. Routes 
    - Hono adds this header by default.
    - Usually disabled in production APIs to avoid leaking framework info.
 
-6. **Compress responses**
+6. **Compress responses** ✅
    - Use `hono/compress` for gzip where the client accepts it.
 
 ---

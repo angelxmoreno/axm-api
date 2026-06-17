@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { type RateLimiterConfig, RateLimiterConfigSchema } from '@/middlewares/rate-limiter.middleware';
 import { type SecureHeadersOptions, SecureHeadersOptionsSchema } from '@/middlewares/secure-headers.middleware';
 import { LogLevelSchema } from '@/utils/create-logger';
 import { safeZodParser } from '@/utils/safe-zod-parser';
@@ -21,6 +22,7 @@ const buildAppConfig = (v: z.infer<typeof RawAppConfigSchema>) => ({
     },
     cors: buildCorsConfig(v),
     secureHeaders: buildSecureHeadersConfig(v),
+    rateLimiter: buildRateLimiterConfig(v),
     sentry: {
         dsn: v.SENTRY_DSN,
     },
@@ -39,6 +41,13 @@ const buildCorsConfig = (v: z.infer<typeof RawAppConfigSchema>) => ({
     credentials: v.CORS_CREDENTIALS ?? false,
     exposeHeaders: v.CORS_EXPOSE_HEADERS ?? [],
 });
+
+const buildRateLimiterConfig = (v: z.infer<typeof RawAppConfigSchema>): RateLimiterConfig => {
+    return RateLimiterConfigSchema.parse({
+        windowMs: v.RATE_LIMITER_WINDOW_MS,
+        limit: v.RATE_LIMITER_LIMIT,
+    });
+};
 
 const buildSecureHeadersConfig = (v: z.infer<typeof RawAppConfigSchema>): SecureHeadersOptions => {
     return SecureHeadersOptionsSchema.parse({
@@ -73,6 +82,8 @@ const RawAppConfigSchema = z.object({
     CORS_MAX_AGE: OptionalNumberSchema,
     CORS_CREDENTIALS: OptionalBooleanSchema,
     CORS_EXPOSE_HEADERS: CommaListSchema,
+    RATE_LIMITER_WINDOW_MS: OptionalNumberSchema,
+    RATE_LIMITER_LIMIT: OptionalNumberSchema,
     SECURE_HEADERS_CROSS_ORIGIN_EMBEDDER_POLICY: OverridableHeaderSchema,
     SECURE_HEADERS_CROSS_ORIGIN_RESOURCE_POLICY: OverridableHeaderSchema,
     SECURE_HEADERS_CROSS_ORIGIN_OPENER_POLICY: OverridableHeaderSchema,

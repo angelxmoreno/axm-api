@@ -13,6 +13,5 @@ export const createContainerBuilder = (config: AppConfig): Builder => {
     });
 
     builder.registerInstance(logger).as<Logger>('Logger').singleInstance();
-
     return builder;
 };
